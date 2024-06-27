@@ -1,7 +1,7 @@
-import { NetworkStatus, gql, useQuery } from "@apollo/client";
+import { NetworkStatus, gql, useLazyQuery, useQuery } from "@apollo/client";
 import MediaCard from "./MediaCard";
 import InfiniteScroll from "react-infinite-scroller";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const GET_MEDIA = gql`
   query GetMedia($page: Int, $perPage: Int) {
@@ -27,19 +27,19 @@ const GET_MEDIA = gql`
 `;
 
 const MediaGallery = () => {
-  const pageNumberRef = useRef(1);
+  const pageNumberRef = useRef(2);
   const { data, loading, error, fetchMore, networkStatus } = useQuery(
     GET_MEDIA,
     {
       variables: { page: 1, perPage: 5 },
       notifyOnNetworkStatusChange: true,
+      onCompleted: () => {
+        pageNumberRef.current += 1;
+      },
     }
   );
 
   const loadingMore = networkStatus === NetworkStatus.fetchMore;
-
-  if (loading && !data) return <p>Loading...</p>;
-  if (error) return <p>Error: {error.message}</p>;
 
   const {
     Page: { media: list },
@@ -48,17 +48,17 @@ const MediaGallery = () => {
   return (
     <InfiniteScroll
       loadMore={() => {
-        if (loadingMore) {
+        if (loadingMore || loading) {
           return;
         }
+
         fetchMore({
-          variables: { page: pageNumberRef.current + 1 },
-        }).then(() => {
-          pageNumberRef.current += 1;
+          variables: { page: pageNumberRef.current },
         });
       }}
       hasMore={true}
       loader={null}
+      // initialLoad={false}
     >
       <div className="grid gap-4 grid-cols-3 md:grid-cols-5 lg:grid-cols-8">
         {list.map((media) => (
