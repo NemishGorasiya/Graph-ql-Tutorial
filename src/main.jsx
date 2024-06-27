@@ -6,7 +6,23 @@ import "./index.css";
 
 const client = new ApolloClient({
   uri: "https://graphql.anilist.co",
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          Page: {
+            keyArgs: false,
+            merge(existing = { media: [] }, incoming) {
+              return {
+                ...incoming,
+                media: [...existing.media, ...incoming.media],
+              };
+            },
+          },
+        },
+      },
+    },
+  }),
 });
 
 ReactDOM.createRoot(document.getElementById("root")).render(

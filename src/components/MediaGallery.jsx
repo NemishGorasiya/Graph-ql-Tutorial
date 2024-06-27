@@ -1,71 +1,79 @@
-import { gql, useQuery } from "@apollo/client";
+import { NetworkStatus, gql, useQuery } from "@apollo/client";
 import MediaCard from "./MediaCard";
 import InfiniteScroll from "react-infinite-scroller";
+import { useRef } from "react";
 
 const GET_MEDIA = gql`
-	query GetMedia($page: Int, $perPage: Int) {
-		Page(page: $page, perPage: $perPage) {
-			media {
-				title {
-					english
-				}
-				coverImage {
-					large
-				}
-				episodes
-				genres
-				startDate {
-					day
-					month
-					year
-				}
-				id
-			}
-		}
-	}
+  query GetMedia($page: Int, $perPage: Int) {
+    Page(page: $page, perPage: $perPage) {
+      media {
+        id
+        title {
+          english
+        }
+        coverImage {
+          large
+        }
+        episodes
+        genres
+        startDate {
+          day
+          month
+          year
+        }
+      }
+    }
+  }
 `;
 
-const updateQuery = (previousResult, { fetchMoreResult }) => {
-	if (!fetchMoreResult) {
-		return previousResult;
-	}
-
-	const previousMedia = previousResult.Page.media;
-	const fetchMoreMedia = fetchMoreResult.Page.media;
-	fetchMoreResult.Page.media = [...previousMedia, ...fetchMoreMedia];
-
-	return { ...fetchMoreResult };
-};
-
 const MediaGallery = () => {
-	const { data, loading, error, fetchMore } = useQuery(GET_MEDIA, {
-		variables: { page: 1, perPage: 20 },
-	});
+  const pageNumberRef = useRef(1);
+  const { data, loading, error, fetchMore, networkStatus } = useQuery(
+    GET_MEDIA,
+    {
+      variables: { page: 1, perPage: 5 },
+      notifyOnNetworkStatusChange: true,
+    }
+  );
 
-	if (loading) return <p>Loading...</p>;
-	if (error) return <p>Error : {error.message}</p>;
+  const loadingMore = networkStatus === NetworkStatus.fetchMore;
 
-	const {
-		Page: { media: list },
-	} = data || {};
-	return (
-		<InfiniteScroll
-			pageStart={0}
-			loadMore={() => fetchMore({ variables: { page: 2 }, updateQuery })}
-			hasMore={true || false}
-			loader={
-				<div className="loader" key={0}>
-					Loading ...
-				</div>
-			}
-		>
-			<div className="grid gap-4 grid-cols-3 md:grid-cols-5 lg:grid-cols-8">
-				{list.map((media) => (
-					<MediaCard key={media.id} media={media} />
-				))}
-			</div>
-		</InfiniteScroll>
-	);
+  if (loading && !data) return <p>Loading...</p>;
+  if (error) return <p>Error: {error.message}</p>;
+
+  const {
+    Page: { media: list },
+  } = data || { Page: { media: [] } };
+
+  return (
+    <InfiniteScroll
+      loadMore={() => {
+        if (loadingMore) {
+          return;
+        }
+        fetchMore({
+          variables: { page: pageNumberRef.current + 1 },
+        }).then(() => {
+          pageNumberRef.current += 1;
+        });
+      }}
+      hasMore={true}
+      loader={null}
+    >
+      <div className="grid gap-4 grid-cols-3 md:grid-cols-5 lg:grid-cols-8">
+        {list.map((media) => (
+          <MediaCard key={media.id} media={media} />
+        ))}
+        {loadingMore &&
+          [...Array(12)].map((_, index) => (
+            <div
+              className="placeholder-card w-full aspect-[7/10] rounded bg-gray-50"
+              key={index}
+            />
+          ))}
+      </div>
+    </InfiniteScroll>
+  );
 };
 
 export default MediaGallery;
