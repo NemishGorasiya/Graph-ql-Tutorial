@@ -1,27 +1,18 @@
-import { gql, useLazyQuery } from "@apollo/client";
-import { useEffect, useRef, useState } from "react";
+import { NetworkStatus, gql, useQuery } from "@apollo/client";
+import { useRef, useState } from "react";
 import InfiniteScroll from "react-infinite-scroller";
 import MediaCard from "./MediaCard";
 import Filters from "./Filters";
 
 const GET_MEDIA = gql`
-  query GetMedia(
+  query FetchMedia(
     $page: Int
     $perPage: Int
-    $genre: String
-    $seasonYear: Int
-    $season: MediaSeason
-    $format: MediaFormat
     $status: MediaStatus
+    $format: MediaFormat
   ) {
     Page(page: $page, perPage: $perPage) {
-      media(
-        genre: $genre
-        seasonYear: $seasonYear
-        season: $season
-        format: $format
-        status: $status
-      ) {
+      media(status: $status, format: $format) {
         id
         title {
           english
@@ -29,76 +20,62 @@ const GET_MEDIA = gql`
         coverImage {
           large
         }
-        episodes
-        genres
-        startDate {
-          day
-          month
-          year
-        }
+        status
       }
     }
   }
 `;
 
 const MediaGallery = () => {
-  const [fetchData, { data, loading, fetchMore }] = useLazyQuery(GET_MEDIA, {
-    variables: { perPage: 25, page: 1 },
+  // const [filters, setFilters] = useState({});
+  const { data, loading, fetchMore, networkStatus } = useQuery(GET_MEDIA, {
+    variables: {
+      page: 1,
+      perPage: 15,
+    },
+    notifyOnNetworkStatusChange: true,
   });
-  const [filters, setFilters] = useState({});
+  const pageNumberRef = useRef(2);
 
-  const isLoadingRef = useRef(false);
-  const pageNumberRef = useRef(1);
+  const loadMore = async () => {
+    try {
+      if (
+        networkStatus === NetworkStatus.refetch ||
+        networkStatus === 3 ||
+        loading
+      ) {
+        return;
+      }
 
-  const updateFilters = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-    fetchData({ variables: { ...filters, [key]: value, page: 1 } });
-    pageNumberRef.current = 2;
-  };
-
-  const loadMore = () => {
-    if (isLoadingRef.current || loading) {
-      return;
-    }
-    isLoadingRef.current = true;
-    fetchMore({
-      variables: {
-        page: pageNumberRef.current,
-      },
-      updateQuery: (previousQueryResult, { fetchMoreResult }) => {
-        isLoadingRef.current = false;
-        if (!fetchMoreResult) {
-          return previousQueryResult;
-        }
+      const { data } = await fetchMore({
+        variables: {
+          page: pageNumberRef.current,
+          perPage: 15,
+        },
+      });
+      console.log("data", data);
+      if (data) {
         pageNumberRef.current += 1;
-        const mergedResult = {
-          Page: {
-            __typename: "Page",
-            media: [
-              ...(previousQueryResult?.Page?.media || []),
-              ...(fetchMoreResult?.Page?.media || []),
-            ],
-          },
-        };
-        return mergedResult;
-      },
-    });
+      }
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  console.log("filters", filters);
-
-  // useEffect(() => {
-  //   fetchData();
-  // }, [fetchData]);
+  // const updateFilters = (key, value) => {
+  //   setFilters((prev) => ({
+  //     ...prev,
+  //     [key]: value,
+  //   }));
+  //   refetch({ variables: { ...filters, [key]: value, page: 1, perPage: 15 } });
+  //   pageNumberRef.current = 2;
+  // };
 
   const list = data?.Page?.media || [];
 
   return (
     <>
-      <Filters updateFilters={updateFilters} />
+      {/* <Filters updateFilters={updateFilters} /> */}
       <InfiniteScroll
         loadMore={loadMore}
         hasMore={true}
