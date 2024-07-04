@@ -17,11 +17,22 @@ const client = new ApolloClient({
 								return incoming;
 							}
 
+							console.log("incoming", incoming);
+
 							let merged = { ...incoming };
-							merged["media({})"] = existing["media({})"]
-								? [...existing["media({})"], ...incoming["media({})"]]
-								: [...incoming["media({})"]];
-							console.log("merged", merged);
+							// merged["media({})"] = existing["media({})"]
+							// 	? [...existing["media({})"], ...incoming["media({})"]]
+							// 	: [...incoming["media({})"]];
+							// console.log("merged", merged);
+							for (let key in incoming) {
+								if (key.startsWith("media")) {
+									merged[key] = existing[key]
+										? [...existing[key], ...incoming[key]]
+										: [...incoming[key]];
+								} else {
+									merged[key] = incoming[key];
+								}
+							}
 							return merged;
 						},
 					},
