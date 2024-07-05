@@ -3,21 +3,28 @@ import "./App.css";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import AnimeProfile from "./components/AnimeProfile";
 import MediaPage from "./components/MediaPage";
+import Layout from "./components/Layout";
 
 function App() {
   const router = createBrowserRouter([
     {
+      element: <Layout />,
       path: "/",
-      element: <MediaGallery />,
-    },
-    {
-      path: "/:id",
-      // element: <AnimeProfile />,
-      element: <MediaPage />,
+      children: [
+        {
+          index: true,
+          element: <MediaGallery />,
+        },
+        {
+          path: ":id",
+          // element: <AnimeProfile />,
+          element: <MediaPage />,
+        },
+      ],
     },
   ]);
   return (
-    <div className="p-4">
+    <div className="">
       <RouterProvider router={router} />
     </div>
   );
