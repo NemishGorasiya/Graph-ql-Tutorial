@@ -38,7 +38,7 @@ const Filters = ({ updateFilters }) => {
   const { data, error, loading } = useQuery(GET_GENRES);
   const genresList = data?.GenreCollection || [];
   return (
-    <div className="filters flex gap-4">
+    <div className="filters flex gap-4 flex-wrap">
       <div className="select-wrapper">
         <p>Genres</p>
         <select
