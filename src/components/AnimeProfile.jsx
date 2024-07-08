@@ -1,6 +1,6 @@
+import { useParams } from "react-router";
 import { gql, useQuery } from "@apollo/client";
 import Markdown from "react-markdown";
-import { useParams } from "react-router";
 
 const GET_CHARACTER = gql`
   query Character($characterId: Int) {

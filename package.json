@@ -17,7 +17,8 @@
     "react-dom": "^18.3.1",
     "react-infinite-scroller": "^1.2.6",
     "react-markdown": "^9.0.1",
-    "react-router-dom": "^6.24.0"
+    "react-router-dom": "^6.24.0",
+    "rehype-raw": "^7.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

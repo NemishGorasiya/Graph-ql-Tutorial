@@ -1,6 +1,9 @@
-import { gql, useQuery } from "@apollo/client";
-import React from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { gql, useMutation, useSuspenseQuery } from "@apollo/client";
+import Markdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
+import { favouriteIcon } from "../icons";
 
 const GET_MEDIA = gql`
   query Media($id: Int) {
@@ -15,40 +18,85 @@ const GET_MEDIA = gql`
         large
       }
       bannerImage
-      duration
+      description
+      isFavouriteBlocked
+      isFavourite
+    }
+  }
+`;
+
+const TOGGLE_FAVOURITE = gql`
+  mutation ToggleFavourite($animeId: Int) {
+    ToggleFavourite(animeId: $animeId) {
+      anime {
+        edges {
+          id
+        }
+      }
     }
   }
 `;
 
 const MediaPage = () => {
   const { id } = useParams();
-  const { data, loading } = useQuery(GET_MEDIA, {
+  const [isFavourite, setIsFavourite] = useState(false);
+  const { data } = useSuspenseQuery(GET_MEDIA, {
     variables: {
       id,
     },
+    onCompleted: (data) => {
+      setIsFavourite(data?.Media?.isFavourite);
+    },
   });
+  const [toggleFavourite, { error: toggleFavouriteError }] =
+    useMutation(TOGGLE_FAVOURITE);
+
   const {
     Media: {
       bannerImage,
       coverImage: { large = "" } = {},
-      duration,
+      description,
       title: { english = "" } = {},
       rankings: { rank } = {},
+      isFavouriteBlocked,
     } = {},
   } = data || {};
-  return loading ? (
-    <h1>Loading..</h1>
-  ) : (
+
+  const handleToggleFavourite = () => {
+    if (isFavouriteBlocked) {
+      console.log("favourite blocked");
+      return;
+    }
+    toggleFavourite({
+      variables: {
+        animeId: id,
+      },
+    });
+    if (toggleFavouriteError) {
+      console.log("error", toggleFavouriteError);
+    } else {
+      console.log("Favorite toggled");
+      setIsFavourite(!isFavourite);
+    }
+  };
+
+  return (
     <div className="">
       <div className="h-64 w-full">
         <img className="h-full w-full object-cover" src={bannerImage} alt="" />
       </div>
       <div className="flex gap-4">
-        <img src={large} alt="" />
+        <img src={large} alt="image" />
         <div>
           <h1 className="text-2xl font-bold">{english}</h1>
           <p>{rank}</p>
-          <p className="text-xl font-bold">Duration : {duration}</p>
+          <Markdown rehypePlugins={[rehypeRaw]}>{description}</Markdown>
+          <button
+            className="flex gap-2 border-2 p-2 rounded-md"
+            onClick={handleToggleFavourite}
+          >
+            Favourite {favouriteIcon(isFavourite)}
+          </button>
         </div>
       </div>
     </div>

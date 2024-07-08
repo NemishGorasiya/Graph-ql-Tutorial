@@ -7,6 +7,7 @@ const MediaCard = memo(({ media }) => {
     coverImage: { large },
     id,
   } = media;
+
   return (
     <Link to={`/${id}`}>
       <div className="w-full aspect-[7/10] rounded">
